@@ -81,6 +81,12 @@ CollisionMonitor::on_configure(const rclcpp_lifecycle::State & state)
   collision_points_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     "~/collision_points_marker");
 
+  enable_collision_monitoring_service_ = this->create_service<std_srvs::srv::SetBool>(
+    "~/enable_collision_monitoring",
+    std::bind(&CollisionMonitor::enableCollisionMonitoringCallback, this, std::placeholders::_1,
+      std::placeholders::_2, std::placeholders::_3));
+    
+
   nav2::declare_parameter_if_not_declared(
     node, "use_realtime_priority", rclcpp::ParameterValue(false));
   bool use_realtime_priority = false;
@@ -166,6 +172,7 @@ CollisionMonitor::on_cleanup(const rclcpp_lifecycle::State & /*state*/)
   cmd_vel_out_pub_.reset();
   state_pub_.reset();
   collision_points_marker_pub_.reset();
+  enable_collision_monitoring_service_.reset();
 
   polygons_.clear();
   sources_.clear();
@@ -191,8 +198,13 @@ void CollisionMonitor::cmdVelInCallbackStamped(geometry_msgs::msg::TwistStamped:
     RCLCPP_ERROR(get_logger(), "Velocity message contains NaNs or Infs! Ignoring as invalid!");
     return;
   }
-
-  process({msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, msg->header);
+  if (collision_monitoring_enabled_){
+    process({msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, msg->header);
+  } else {
+    // Republish the message
+    Action robot_action{DO_NOTHING, {msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, ""};
+    publishVelocity(robot_action, msg->header);
+  }
 }
 
 void CollisionMonitor::cmdVelInCallbackUnstamped(geometry_msgs::msg::Twist::SharedPtr msg)
@@ -224,6 +236,19 @@ void CollisionMonitor::publishVelocity(
   // linear.z, angular.x and angular.y will remain 0.0
 
   cmd_vel_out_pub_->publish(std::move(cmd_vel_out_msg));
+}
+
+void CollisionMonitor::enableCollisionMonitoringCallback(
+  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+  std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+{
+  collision_monitoring_enabled_ = request->data;
+  response->success = true;
+  response->message = request->data ? 
+    "Collision monitoring enabled" : "Collision monitoring disabled";
+  
+  RCLCPP_INFO(get_logger(), "%s", response->message.c_str());
 }
 
 bool CollisionMonitor::getParameters(
@@ -270,6 +295,10 @@ bool CollisionMonitor::getParameters(
     node, "stop_pub_timeout", rclcpp::ParameterValue(1.0));
   stop_pub_timeout_ =
     rclcpp::Duration::from_seconds(get_parameter("stop_pub_timeout").as_double());
+  nav2::declare_parameter_if_not_declared(
+    node, "collision_monitoring_enabled", rclcpp::ParameterValue(true));
+  collision_monitoring_enabled_ =
+    get_parameter("collision_monitoring_enabled").as_bool();
 
   if (
     !configureSources(

@@ -24,6 +24,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 #include "tf2/time.hpp"
 #include "tf2_ros/buffer.hpp"
@@ -110,6 +111,16 @@ protected:
    * @param header TwistStamped header to use
    */
   void publishVelocity(const Action & robot_action, const std_msgs::msg::Header & header);
+
+  /**
+   * @brief Callback for toggleCollisionChecking service
+   * @param request Service request
+   * @param response Service response
+   */
+  void enableCollisionMonitoringCallback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 
   /**
    * @brief Supporting routine obtaining all ROS-parameters
@@ -227,9 +238,14 @@ protected:
   nav2::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
     collision_points_marker_pub_;
 
+  /// @brief CollisionMonitor toggle service
+  nav2::ServiceServer<std_srvs::srv::SetBool>::SharedPtr
+    enable_collision_monitoring_service_;
+
   /// @brief Whether main routine is active
   bool process_active_;
-
+  /// @brief Whether collision monitoring is enabled
+  bool collision_monitoring_enabled_;
   /// @brief Previous robot action
   Action robot_action_prev_;
   /// @brief Latest timestamp when robot has 0-velocity

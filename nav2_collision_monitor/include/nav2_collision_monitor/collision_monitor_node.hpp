@@ -24,7 +24,6 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
-#include "std_srvs/srv/set_bool.hpp"
 
 #include "tf2/time.hpp"
 #include "tf2_ros/buffer.hpp"
@@ -34,6 +33,7 @@
 #include "nav2_util/twist_publisher.hpp"
 #include "nav2_util/twist_subscriber.hpp"
 #include "nav2_msgs/msg/collision_monitor_state.hpp"
+#include "nav2_msgs/srv/toggle.hpp"
 
 #include "nav2_collision_monitor/types.hpp"
 #include "nav2_collision_monitor/polygon.hpp"
@@ -117,10 +117,10 @@ protected:
    * @param request Service request
    * @param response Service response
    */
-  void enableCollisionMonitoringCallback(
+  void toggleCollisionMonitoringCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-    std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+    const std::shared_ptr<nav2_msgs::srv::Toggle::Request> request,
+    std::shared_ptr<nav2_msgs::srv::Toggle::Response> response);
 
   /**
    * @brief Supporting routine obtaining all ROS-parameters
@@ -239,8 +239,8 @@ protected:
     collision_points_marker_pub_;
 
   /// @brief CollisionMonitor toggle service
-  nav2::ServiceServer<std_srvs::srv::SetBool>::SharedPtr
-    enable_collision_monitoring_service_;
+  nav2::ServiceServer<nav2_msgs::srv::Toggle>::SharedPtr
+    toggle_collision_monitoring_service_;
 
   /// @brief Whether main routine is active
   bool process_active_;

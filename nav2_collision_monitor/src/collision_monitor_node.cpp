@@ -81,9 +81,9 @@ CollisionMonitor::on_configure(const rclcpp_lifecycle::State & state)
   collision_points_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     "~/collision_points_marker");
 
-  enable_collision_monitoring_service_ = this->create_service<std_srvs::srv::SetBool>(
-    "~/enable_collision_monitoring",
-    std::bind(&CollisionMonitor::enableCollisionMonitoringCallback, this, std::placeholders::_1,
+  toggle_collision_monitoring_service_ = this->create_service<nav2_msgs::srv::Toggle>(
+    "~/toggle_collision_monitoring",
+    std::bind(&CollisionMonitor::toggleCollisionMonitoringCallback, this, std::placeholders::_1,
       std::placeholders::_2, std::placeholders::_3));
     
 
@@ -172,7 +172,7 @@ CollisionMonitor::on_cleanup(const rclcpp_lifecycle::State & /*state*/)
   cmd_vel_out_pub_.reset();
   state_pub_.reset();
   collision_points_marker_pub_.reset();
-  enable_collision_monitoring_service_.reset();
+  toggle_collision_monitoring_service_.reset();
 
   polygons_.clear();
   sources_.clear();
@@ -238,14 +238,14 @@ void CollisionMonitor::publishVelocity(
   cmd_vel_out_pub_->publish(std::move(cmd_vel_out_msg));
 }
 
-void CollisionMonitor::enableCollisionMonitoringCallback(
+void CollisionMonitor::toggleCollisionMonitoringCallback(
   const std::shared_ptr<rmw_request_id_t> /*request_header*/,
-  const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-  std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+  const std::shared_ptr<nav2_msgs::srv::Toggle::Request> request,
+  std::shared_ptr<nav2_msgs::srv::Toggle::Response> response)
 {
-  collision_monitoring_enabled_ = request->data;
+  collision_monitoring_enabled_ = request->enable;
   response->success = true;
-  response->message = request->data ? 
+  response->message = request->enable ? 
     "Collision monitoring enabled" : "Collision monitoring disabled";
   
   RCLCPP_INFO(get_logger(), "%s", response->message.c_str());
@@ -296,9 +296,9 @@ bool CollisionMonitor::getParameters(
   stop_pub_timeout_ =
     rclcpp::Duration::from_seconds(get_parameter("stop_pub_timeout").as_double());
   nav2::declare_parameter_if_not_declared(
-    node, "collision_monitoring_enabled", rclcpp::ParameterValue(true));
+    node, "start_enabled", rclcpp::ParameterValue(true));
   collision_monitoring_enabled_ =
-    get_parameter("collision_monitoring_enabled").as_bool();
+    get_parameter("start_enabled").as_bool();
 
   if (
     !configureSources(

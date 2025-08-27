@@ -117,7 +117,7 @@ protected:
    * @param request Service request
    * @param response Service response
    */
-  void toggleCollisionMonitoringCallback(
+  void toggleCollisionMonitorCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<nav2_msgs::srv::Toggle::Request> request,
     std::shared_ptr<nav2_msgs::srv::Toggle::Response> response);
@@ -240,12 +240,12 @@ protected:
 
   /// @brief CollisionMonitor toggle service
   nav2::ServiceServer<nav2_msgs::srv::Toggle>::SharedPtr
-    toggle_collision_monitoring_service_;
+    toggle_collision_monitor_service_;
 
   /// @brief Whether main routine is active
   bool process_active_;
   /// @brief Whether collision monitoring is enabled
-  bool collision_monitoring_enabled_;
+  bool collision_monitor_enabled_;
   /// @brief Previous robot action
   Action robot_action_prev_;
   /// @brief Latest timestamp when robot has 0-velocity

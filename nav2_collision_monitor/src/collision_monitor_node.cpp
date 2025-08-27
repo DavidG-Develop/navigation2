@@ -81,9 +81,9 @@ CollisionMonitor::on_configure(const rclcpp_lifecycle::State & state)
   collision_points_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     "~/collision_points_marker");
 
-  toggle_collision_monitoring_service_ = this->create_service<nav2_msgs::srv::Toggle>(
-    "~/toggle_collision_monitoring",
-    std::bind(&CollisionMonitor::toggleCollisionMonitoringCallback, this, std::placeholders::_1,
+  toggle_collision_monitor_service_ = this->create_service<nav2_msgs::srv::Toggle>(
+    "~/toggle_collision_monitor",
+    std::bind(&CollisionMonitor::toggleCollisionMonitorCallback, this, std::placeholders::_1,
       std::placeholders::_2, std::placeholders::_3));
     
 
@@ -172,7 +172,7 @@ CollisionMonitor::on_cleanup(const rclcpp_lifecycle::State & /*state*/)
   cmd_vel_out_pub_.reset();
   state_pub_.reset();
   collision_points_marker_pub_.reset();
-  toggle_collision_monitoring_service_.reset();
+  toggle_collision_monitor_service_.reset();
 
   polygons_.clear();
   sources_.clear();
@@ -198,7 +198,7 @@ void CollisionMonitor::cmdVelInCallbackStamped(geometry_msgs::msg::TwistStamped:
     RCLCPP_ERROR(get_logger(), "Velocity message contains NaNs or Infs! Ignoring as invalid!");
     return;
   }
-  if (collision_monitoring_enabled_){
+  if (collision_monitor_enabled_){
     process({msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, msg->header);
   } else {
     // Republish the message
@@ -238,15 +238,15 @@ void CollisionMonitor::publishVelocity(
   cmd_vel_out_pub_->publish(std::move(cmd_vel_out_msg));
 }
 
-void CollisionMonitor::toggleCollisionMonitoringCallback(
+void CollisionMonitor::toggleCollisionMonitorCallback(
   const std::shared_ptr<rmw_request_id_t> /*request_header*/,
   const std::shared_ptr<nav2_msgs::srv::Toggle::Request> request,
   std::shared_ptr<nav2_msgs::srv::Toggle::Response> response)
 {
-  collision_monitoring_enabled_ = request->enable;
+  collision_monitor_enabled_ = request->enable;
   response->success = true;
   response->message = request->enable ? 
-    "Collision monitoring enabled" : "Collision monitoring disabled";
+    "Collision monitor enabled" : "Collision monitor disabled";
   
   RCLCPP_INFO(get_logger(), "%s", response->message.c_str());
 }
@@ -297,7 +297,7 @@ bool CollisionMonitor::getParameters(
     rclcpp::Duration::from_seconds(get_parameter("stop_pub_timeout").as_double());
   nav2::declare_parameter_if_not_declared(
     node, "start_enabled", rclcpp::ParameterValue(true));
-  collision_monitoring_enabled_ =
+  collision_monitor_enabled_ =
     get_parameter("start_enabled").as_bool();
 
   if (

@@ -85,7 +85,7 @@ CollisionMonitor::on_configure(const rclcpp_lifecycle::State & state)
     "~/toggle_collision_monitor",
     std::bind(&CollisionMonitor::toggleCollisionMonitorCallback, this, std::placeholders::_1,
       std::placeholders::_2, std::placeholders::_3));
-    
+
 
   nav2::declare_parameter_if_not_declared(
     node, "use_realtime_priority", rclcpp::ParameterValue(false));
@@ -198,11 +198,12 @@ void CollisionMonitor::cmdVelInCallbackStamped(geometry_msgs::msg::TwistStamped:
     RCLCPP_ERROR(get_logger(), "Velocity message contains NaNs or Infs! Ignoring as invalid!");
     return;
   }
-  if (collision_monitor_enabled_){
+  if (collision_monitor_enabled_) {
     process({msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, msg->header);
   } else {
     // Republish the message
-    Action robot_action{DO_NOTHING, {msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, ""};
+    Action robot_action{DO_NOTHING,
+      {msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z}, ""};
     publishVelocity(robot_action, msg->header);
   }
 }
@@ -239,15 +240,15 @@ void CollisionMonitor::publishVelocity(
 }
 
 void CollisionMonitor::toggleCollisionMonitorCallback(
-  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<rmw_request_id_t>/*request_header*/,
   const std::shared_ptr<nav2_msgs::srv::Toggle::Request> request,
   std::shared_ptr<nav2_msgs::srv::Toggle::Response> response)
 {
   collision_monitor_enabled_ = request->enable;
   response->success = true;
-  response->message = request->enable ? 
+  response->message = request->enable ?
     "Collision monitor enabled" : "Collision monitor disabled";
-  
+
   RCLCPP_INFO(get_logger(), "%s", response->message.c_str());
 }
 
